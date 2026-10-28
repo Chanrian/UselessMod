@@ -24,7 +24,7 @@ public final class FluidIngredient implements Predicate<FluidStack> {
     public static final StreamCodec<FriendlyByteBuf,FluidIngredient> STREAM_CODEC = StreamCodec.of(
             (buf,value) -> buf.writeUtf(value.toJson().toString(),1_048_576),
             buf -> fromJson(JsonParser.parseString(buf.readUtf(1_048_576))));
-    private enum Kind { FLUID, TAG, SAME_FLUID, SAME_TAG, NBT, MERGE_NBT, ANY }
+    private enum Kind { FLUID, TAG, SAME_FLUID, SAME_TAG, NBT, MERGE_NBT, WITH_NBT, ANY }
     private final Kind kind;
     private final ResourceLocation id;
     private final CompoundTag nbt;
@@ -50,6 +50,10 @@ public final class FluidIngredient implements Predicate<FluidStack> {
         if (stack.isEmpty()) throw new IllegalArgumentException("Empty NBT fluid ingredient");
         return new FluidIngredient(Kind.NBT,BuiltInRegistries.FLUID.getKey(stack.getFluid()),stack.getTag(),strict,List.of());
     }
+    /** Exact NBT constraint composed with a live fluid/tag union, used by GT ingredients. */
+    public static FluidIngredient withNbt(FluidIngredient ingredient, CompoundTag nbt) {
+        return nbt == null ? ingredient : new FluidIngredient(Kind.WITH_NBT, null, nbt, true, List.of(ingredient));
+    }
     public static FluidIngredient any(List<FluidIngredient> choices) {
         Objects.requireNonNull(choices);
         return choices.size()==1?choices.get(0):new FluidIngredient(Kind.ANY,null,null,false,choices);
@@ -71,6 +75,7 @@ public final class FluidIngredient implements Predicate<FluidStack> {
             case MERGE_NBT -> id.equals(BuiltInRegistries.FLUID.getKey(stack.getFluid()))
                     && (nbt==null || nbt.isEmpty() || stack.getTag()!=null
                     && stack.getTag().copy().merge(nbt).equals(stack.getTag()));
+            case WITH_NBT -> children.get(0).test(stack) && Objects.equals(nbt, stack.getTag());
             case ANY -> children.stream().anyMatch(child -> child.test(stack));
         };
     }
@@ -85,6 +90,9 @@ public final class FluidIngredient implements Predicate<FluidStack> {
         };
     }
     public FluidStack[] getStacks() {
+        if (kind == Kind.WITH_NBT) return Arrays.stream(children.get(0).getStacks()).map(stack -> {
+            FluidStack copy = stack.copy(); copy.setTag(nbt.copy()); return copy;
+        }).toArray(FluidStack[]::new);
         if(kind==Kind.ANY) return children.stream().flatMap(c -> Arrays.stream(c.getStacks())).toArray(FluidStack[]::new);
         if(kind==Kind.TAG || kind==Kind.SAME_TAG) {
             List<FluidStack> result=new ArrayList<>();
@@ -97,6 +105,13 @@ public final class FluidIngredient implements Predicate<FluidStack> {
         return stack.isEmpty()?new FluidStack[0]:new FluidStack[]{stack};
     }
     public JsonElement toJson() {
+        if (kind == Kind.WITH_NBT) {
+            JsonObject json = new JsonObject();
+            json.addProperty("type", "useless_mod:with_nbt");
+            json.add("ingredient", children.get(0).toJson());
+            json.addProperty("nbt", com.sorrowmist.useless.compat.forge1201.recipe.NbtCanonical.snbt(nbt));
+            return json;
+        }
         if(kind==Kind.ANY) {
             JsonArray array=new JsonArray(); children.forEach(child -> array.add(child.toJson())); return array;
         }
@@ -124,6 +139,8 @@ public final class FluidIngredient implements Predicate<FluidStack> {
         if(json.has("components") && json.getAsJsonObject("components").size()>0)
             throw new JsonSyntaxException("Use native 1.20.1 NBT instead of components");
         String type=json.has("type")?json.get("type").getAsString():"";
+        if (type.equals("useless_mod:with_nbt"))
+            return withNbt(parse(json.get("ingredient"), depth + 1), CraftingHelper.getNBT(json.get("nbt")));
         if(type.equals("neoforge:compound") || type.equals("useless_mod:compound_fluid"))
             return parse(json.get("children"),depth+1);
         if(!type.isEmpty() && !type.equals("useless_mod:nbt_fluid") && !type.equals("useless_mod:merge_nbt_fluid") && !type.equals("useless_mod:same_fluid") && !type.equals("useless_mod:same_fluid_tag"))

@@ -60,8 +60,9 @@ public final class FurnaceOutputPort {
                                     FurnaceChemicalStorage outputChemicalStorage,
                                     ChemicalKeyProvider chemicalKeyProvider,
                                     BiConsumer<AEKey, Long> onKeyRemainder) {
+        int outputIndex = 0;
         for (ItemStack output : recipe.outputs()) {
-            long totalCountLong = (long) output.getCount() * parallel;
+            long totalCountLong = Math.multiplyExact(output.getCount(), recipe.outputOperations(outputIndex++, parallel));
             if (totalCountLong <= 0L) {
                 continue;
             }
@@ -85,7 +86,7 @@ public final class FurnaceOutputPort {
         }
 
         for (FluidStack outputFluid : recipe.outputFluids()) {
-            long totalAmountLong = (long) outputFluid.getAmount() * parallel;
+            long totalAmountLong = Math.multiplyExact(outputFluid.getAmount(), recipe.outputOperations(outputIndex++, parallel));
             if (totalAmountLong <= 0L) {
                 continue;
             }
@@ -107,10 +108,13 @@ public final class FurnaceOutputPort {
         }
 
         for (var keyOutput : recipe.keyOutputs()) {
+            long outputOperations = recipe.outputOperations(outputIndex++, parallel);
+            if (outputOperations == 0L) continue;
             if (keyOutput == null || keyOutput.what() == null || keyOutput.amount() <= 0L) continue;
             GenericStack remainder = outputKeyWithRemainder(
-                    new GenericStack(keyOutput.what(), saturatingMultiply(keyOutput.amount(), parallel)),
-                    aeOutput, outputChemicalStorage, chemicalKeyProvider);
+                    new GenericStack(keyOutput.what(), saturatingMultiply(keyOutput.amount(), outputOperations)),
+                    aeOutput, itemHandler, outputSlotsStart, outputSlotsCount, outputFluidTanks, fluidTankCount,
+                    outputChemicalStorage, chemicalKeyProvider);
             if (remainder != null && onKeyRemainder != null) {
                 onKeyRemainder.accept(remainder.what(), remainder.amount());
             }

@@ -1325,5 +1325,6 @@
   "useless_mod.augment.upgrade": "升级增强",
   "item.useless_mod.augment_parallel_1": "并行处理增强 I",
   "item.useless_mod.augment_parallel_2": "并行处理增强 II",
-  "item.useless_mod.augment_parallel_3": "并行处理增强 III"
+  "item.useless_mod.augment_parallel_3": "并行处理增强 III",
+  "jei.useless_mod.tooltip.gt_chance": "概率：%s%%；整批按期望整数部分＋余数抽样结算。AE 可能等待未产出的随机副产物。"
 }

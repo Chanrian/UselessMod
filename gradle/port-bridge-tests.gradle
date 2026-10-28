@@ -53,6 +53,7 @@ sourceSets {
         java.include 'com/sorrowmist/useless/content/blockentities/OreGeneratorSampleHandler.java'
         java.include 'com/sorrowmist/useless/api/enums/AlloyFurnaceMode.java'
         java.include 'com/sorrowmist/useless/content/recipe/AdvancedAlloyFurnaceRecipe.java'
+        java.include 'com/sorrowmist/useless/content/recipe/RecipeOutputChance.java'
         java.include 'com/sorrowmist/useless/content/recipe/AdvancedAlloyFurnaceRecipeSerializer.java'
         java.include 'com/sorrowmist/useless/content/recipe/AdvancedAlloyFurnaceRecipeBuilder.java'
         java.include 'com/sorrowmist/useless/content/recipe/CountedIngredient.java'

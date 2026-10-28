@@ -224,6 +224,10 @@ public final class AlloyFurnaceRecipeCalculator {
      * 对于每种输出: 可用空间 / 单次产出数量 = 该输出允许的并行数，取所有输出的最小值。
      */
     public int calculateOutputParallel(AdvancedAlloyFurnaceRecipe recipe) {
+        if (com.sorrowmist.useless.content.recipe.adapters.gtceu.GtceuOutputCapacity.isGtRecipe(recipe))
+            return com.sorrowmist.useless.content.recipe.adapters.gtceu.GtceuOutputCapacity.limit(
+                    recipe, Integer.MAX_VALUE, itemHandler, OUTPUT_SLOTS_START, OUTPUT_SLOTS_COUNT,
+                    outputFluidTanks, FLUID_TANK_COUNT);
         int maxParallel = Integer.MAX_VALUE;
 
         // 计算物品输出空间限制

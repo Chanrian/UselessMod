@@ -87,6 +87,13 @@ class DependencyMetadataTest {
         assertFalse(requirements.get("create").<Boolean>get("mandatory"));
     }
 
+    @Test void gtPackLdlibVersionsAreAcceptedWithoutRemovingTheApiUpperBound() throws Exception {
+        var range = VersionRange.createFromVersionSpec(requirements().get("ldlib").get("versionRange"));
+        for (String version : List.of("1.0.28.a", "1.0.45", "1.0.52.a"))
+            assertTrue(range.containsVersion(new DefaultArtifactVersion(version)), version);
+        assertFalse(range.containsVersion(new DefaultArtifactVersion("1.0.53")));
+    }
+
     @Test void thermalRequirementsAllowTheOldestApiAndThePacksEmbeddedCore() throws Exception {
         var requirements = requirements();
         for (String id : List.of("thermal", "cofh_core")) {

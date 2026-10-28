@@ -331,7 +331,7 @@ public class CraftingTask {
     }
 
     private boolean recipeOutputsFitPhysicalTask(AdvancedAlloyFurnaceRecipe recipe) {
-        if (AdvancedAlloyFurnacePatternPolicy.usesRecipeOutputs(pattern)) {
+        if (AdvancedAlloyFurnacePatternPolicy.usesRecipeOutputs(pattern) || !recipe.outputChances().isEmpty()) {
             CraftingAeAmountAccumulator outputs = new CraftingAeAmountAccumulator();
             for (ItemStack output : recipe.outputs()) {
                 GenericStack amount = GenericStack.fromItemStack(output);
@@ -953,16 +953,20 @@ public class CraftingTask {
 
         AdvancedAlloyFurnaceRecipe recipe = findTaskRecipe();
 
-        if (recipe != null && AdvancedAlloyFurnacePatternPolicy.usesRecipeOutputs(pattern)) {
+        if (recipe != null && (AdvancedAlloyFurnacePatternPolicy.usesRecipeOutputs(pattern) || !recipe.outputChances().isEmpty())) {
+            int outputIndex = 0;
             for (ItemStack output : recipe.outputs()) {
-                addPendingItemOrKey(output, exactProduct(output.getCount(), craftCount));
+                long successes = recipe.outputOperations(outputIndex++, craftCount);
+                if (successes > 0) addPendingItemOrKey(output, exactProduct(output.getCount(), successes));
             }
             for (FluidStack output : recipe.outputFluids()) {
-                addPendingFluidOrKey(output, exactProduct(output.getAmount(), craftCount));
+                long successes = recipe.outputOperations(outputIndex++, craftCount);
+                if (successes > 0) addPendingFluidOrKey(output, exactProduct(output.getAmount(), successes));
             }
             for (GenericStack output : recipe.keyOutputs()) {
-                if (output != null && output.what() != null && output.amount() > 0) {
-                    addPendingKey(output.what(), exactProduct(output.amount(), craftCount));
+                long successes = recipe.outputOperations(outputIndex++, craftCount);
+                if (successes > 0 && output != null && output.what() != null && output.amount() > 0) {
+                    addPendingKey(output.what(), exactProduct(output.amount(), successes));
                 }
             }
             context.markChanged();

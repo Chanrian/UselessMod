@@ -1208,6 +1208,11 @@ public final class AdvancedAlloyFurnaceAeManager {
         for (KeyCounter counter : unitPrototype) {
             for (var entry : counter) prototypeKeys.add(new GenericStack(entry.getKey(), entry.getLongValue()));
         }
+        if (com.sorrowmist.useless.content.recipe.adapters.gtceu.GtceuOutputCapacity.isGtRecipe(recipe)
+                && (!com.sorrowmist.useless.content.recipe.ItemIngredientAllocator.matches(
+                        recipe.inputs(), List.of(), prototypeKeys, manualOperations)
+                || !com.sorrowmist.useless.content.recipe.FluidIngredientAllocator.matchesLong(
+                        recipe.inputFluids(), List.of(), prototypeKeys, manualOperations))) return false;
         var retained = com.sorrowmist.useless.content.recipe.RetainedRecipeInputs.remainders(
                 recipe, List.of(), prototypeKeys, manualOperations);
         if (retained == null) return false;
@@ -1224,7 +1229,13 @@ public final class AdvancedAlloyFurnaceAeManager {
         }
         // 能量：口径与长版任务的 calculateTargetTotalEnergy 完全一致（与并行相关时按 count 放大）。
         ResolvedCatalystEffect effect = this.owner.resolveTaskEffect(recipe);
-        long totalEnergy = AlloyFurnaceBigIntegerCrafting.totalEnergy(recipe, count, effect);
+        BigInteger chargedOperations = com.sorrowmist.useless.content.recipe.adapters.gtceu.GtceuOutputCapacity.isGtRecipe(recipe)
+                ? count.multiply(BigInteger.valueOf(manualOperations)) : count;
+        BigInteger energyLimit = AlloyFurnaceBigIntegerCrafting.maximumCountForEnergy(
+                recipe.energy(), this.owner.getEnergyManager().getEnergyStoredLong(), effect);
+        if (com.sorrowmist.useless.content.recipe.adapters.gtceu.GtceuOutputCapacity.isGtRecipe(recipe)
+                && energyLimit != null && chargedOperations.compareTo(energyLimit) > 0) return false;
+        long totalEnergy = AlloyFurnaceBigIntegerCrafting.totalEnergy(recipe, chargedOperations, effect);
         if (totalEnergy > 0L) {
             IEnergyManager energy = this.owner.getEnergyManager();
             if (totalEnergy > energy.getEnergyStoredLong() || !energy.tryConsumeEnergy(totalEnergy)) {
@@ -1232,6 +1243,16 @@ public final class AdvancedAlloyFurnaceAeManager {
             }
         }
 
+        var actualOutputs = AlloyFurnaceBigIntegerCrafting.scaledOutputs(unitOutputs, count);
+        if (com.sorrowmist.useless.content.recipe.adapters.gtceu.GtceuOutputCapacity.isGtRecipe(recipe)
+                || !recipe.outputChances().isEmpty()) {
+            var rolled = new ArrayList<>(AlloyFurnaceBigIntegerCrafting.rolledOutputs(
+                    recipe, count.multiply(BigInteger.valueOf(manualOperations))));
+            rolled.addAll(AlloyFurnaceBigIntegerCrafting.scaledOutputs(retained, count));
+            actualOutputs = List.copyOf(rolled);
+            produced = new CraftingAeAmountAccumulator();
+            for (var output : actualOutputs) produced.add(output.what(), output.amount());
+        }
         long useless$bigintStarted = System.nanoTime();
 
         // 走到这里才算接收：只消费手里那一份原型（count-1 份由调用方的 BigInteger 账本扣除），
@@ -1241,7 +1262,7 @@ public final class AdvancedAlloyFurnaceAeManager {
         PendingCraftingOutput pending = new PendingCraftingOutput(
                 level.getGameTime(),
                 produced,
-                AlloyFurnaceBigIntegerCrafting.scaledOutputs(unitOutputs, count),
+                actualOutputs,
                 cpuContext,
                 cpuBinding == null ? null : cpuBinding.adapterId());
         for (KeyCounter counter : unitPrototype) {

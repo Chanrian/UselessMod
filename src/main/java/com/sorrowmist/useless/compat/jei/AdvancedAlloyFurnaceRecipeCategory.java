@@ -303,6 +303,7 @@ public class AdvancedAlloyFurnaceRecipeCategory implements IRecipeCategory<Alloy
             int y = OUTPUT_SLOTS_START_Y + (int) (row * outputSpacingY);
 
             ItemStack outputStack = outputs.get(i);
+            final int chanceIndex = i;
             int count = outputStack.getCount();
 
             builder.addSlot(RecipeIngredientRole.OUTPUT, x, y)
@@ -315,6 +316,7 @@ public class AdvancedAlloyFurnaceRecipeCategory implements IRecipeCategory<Alloy
                         if (totalOutputCount > ITEM_GRID_MAX_SLOTS) {
                             tooltip.add(Component.translatable("jei.useless_mod.tooltip.key_output").withStyle(ChatFormatting.AQUA));
                         }
+                        addChanceTooltip(tooltip, recipe, chanceIndex);
                         addRecipeIdTooltip(tooltip, recipe.id());
                     });
         }
@@ -326,12 +328,14 @@ public class AdvancedAlloyFurnaceRecipeCategory implements IRecipeCategory<Alloy
             int x = OUTPUT_SLOTS_START_X + (int) (col * outputSpacingX);
             int y = OUTPUT_SLOTS_START_Y + (int) (row * outputSpacingY);
             GenericStack keyOutput = keyOutputs.get(i);
+            final int chanceIndex = recipe.outputs().size() + recipe.outputFluids().size() + i;
             long amount = keyOutput.amount();
             IRecipeSlotBuilder slot = addKeyStack(builder, RecipeIngredientRole.OUTPUT, x, y, keyOutput);
             if (slot != null) {
                 slot.addRichTooltipCallback((slotView, tooltip) -> {
                     tooltip.add(Component.translatable("jei.useless_mod.tooltip.key_output").withStyle(ChatFormatting.AQUA));
                     tooltip.add(Component.translatable("jei.useless_mod.tooltip.amount", formatCount(amount)).withStyle(ChatFormatting.GRAY));
+                    addChanceTooltip(tooltip, recipe, chanceIndex);
                     addRecipeIdTooltip(tooltip, recipe.id());
                 });
             }
@@ -381,12 +385,14 @@ public class AdvancedAlloyFurnaceRecipeCategory implements IRecipeCategory<Alloy
                 FluidStack fluid = outputFluids.get(i);
                 int x = FLUID_OUTPUT_X + i * fluidWidth;
                 int amount = fluid.getAmount();
+                final int chanceIndex = recipe.outputs().size() + i;
 
                 builder.addSlot(RecipeIngredientRole.OUTPUT, x, FLUID_OUTPUT_Y)
                        .setFluidRenderer(amount, false, fluidWidth, FLUID_OUTPUT_HEIGHT)
                        .addFluidStack(fluid.getFluid(), amount)
                        .addRichTooltipCallback((slot, tooltip) -> {
                            tooltip.add(Component.translatable("jei.useless_mod.tooltip.amount.mb", formatCount(amount)).withStyle(ChatFormatting.GRAY));
+                           addChanceTooltip(tooltip, recipe, chanceIndex);
                            addRecipeIdTooltip(tooltip, recipe.id());
                        });
             }
@@ -622,4 +628,12 @@ public class AdvancedAlloyFurnaceRecipeCategory implements IRecipeCategory<Alloy
         }
         return 0;
     }
+    private static void addChanceTooltip(ITooltipBuilder tooltip, AdvancedAlloyFurnaceRecipe recipe, int index) {
+        for (var chance : recipe.outputChances()) {
+            if (chance.index() == index) tooltip.add(Component.translatable("jei.useless_mod.tooltip.gt_chance",
+                    String.format(java.util.Locale.ROOT, "%.4f", 100.0 * chance.chance() / chance.maxChance()))
+                    .withStyle(ChatFormatting.GOLD));
+        }
+    }
+
 }

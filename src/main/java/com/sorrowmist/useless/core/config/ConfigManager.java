@@ -110,6 +110,9 @@ public class ConfigManager {
 
     // 万象炉配方转换配置
     private static final ForgeConfigSpec.BooleanValue ENABLE_THERMAL_RECIPE_CONVERSION;
+    private static final ForgeConfigSpec.BooleanValue ENABLE_GTCEU_RECIPE_CONVERSION;
+    private static final ForgeConfigSpec.IntValue GTCEU_SPEEDUP;
+    private static final ForgeConfigSpec.IntValue GTCEU_FE_PER_EU;
     private static final ForgeConfigSpec.BooleanValue ENABLE_BLOOD_MAGIC_RECIPE_CONVERSION;
     private static final ForgeConfigSpec.BooleanValue ENABLE_EMBERS_RECIPE_CONVERSION;
     private static final ForgeConfigSpec.BooleanValue ENABLE_LEGACY_METALLURGIC_RECIPE_CONVERSION;
@@ -642,6 +645,14 @@ public class ConfigManager {
                 .push("advanced_alloy_furnace");
         COMMON_BUILDER.translation("useless_mod.configuration.advanced_alloy_furnace.recipe_conversion")
                 .push("recipe_conversion");
+        COMMON_BUILDER.push("gtceu");
+        ENABLE_GTCEU_RECIPE_CONVERSION = COMMON_BUILDER.comment("Enable GTCEu machine recipes in the omniversal furnace. Restart required.")
+                .define("enabled", true);
+        GTCEU_SPEEDUP = COMMON_BUILDER.comment("Duration = max(1, ceil(native ticks / speedup)). Keeps native EU/t before furnace catalyst modifiers; total energy decreases. Restart required.")
+                .defineInRange("speedup", 100, 1, 1_000_000);
+        GTCEU_FE_PER_EU = COMMON_BUILDER.comment("FE per EU: 0 uses GTCEu FeCompat.ratio(false), normally 4. A positive value overrides it in this furnace only. Restart required.")
+                .defineInRange("fe_per_eu", 0, 0, Integer.MAX_VALUE);
+        COMMON_BUILDER.pop();
         COMMON_BUILDER.translation("useless_mod.configuration.advanced_alloy_furnace.recipe_conversion.ae")
                 .push("ae");
         ENABLE_ADVANCED_AE_RECIPE_CONVERSION = defineRecipeConversionOption(
@@ -807,6 +818,7 @@ public class ConfigManager {
         // Options for adapters excluded by gradle/forge1201-pack-profile.json stay in the
         // spec for cross-pack config compatibility; the registry skips their absent classes.
         RECIPE_CONVERSION_OPTIONS = Map.ofEntries(
+                Map.entry("gtceu", ENABLE_GTCEU_RECIPE_CONVERSION),
                 Map.entry("thermal", ENABLE_THERMAL_RECIPE_CONVERSION),
                 Map.entry("bloodmagic", ENABLE_BLOOD_MAGIC_RECIPE_CONVERSION),
                 Map.entry("embers", ENABLE_EMBERS_RECIPE_CONVERSION),
@@ -1117,6 +1129,9 @@ public class ConfigManager {
     public static boolean isFishingRecipeConversionEnabled() {
         return getConfigValue(ENABLE_FISHING_RECIPE_CONVERSION);
     }
+
+    public static int getGtceuSpeedup() { return getConfigValue(GTCEU_SPEEDUP); }
+    public static int getGtceuFePerEu() { return getConfigValue(GTCEU_FE_PER_EU); }
 
     public static boolean isRecipeConversionEnabled(String sourceId) {
         ForgeConfigSpec.BooleanValue option = RECIPE_CONVERSION_OPTIONS.get(sourceId);

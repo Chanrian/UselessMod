@@ -1321,5 +1321,6 @@
   "useless_mod.augment.upgrade": "Upgrade Augment",
   "item.useless_mod.augment_parallel_1": "Parallel Processing Augment I",
   "item.useless_mod.augment_parallel_2": "Parallel Processing Augment II",
-  "item.useless_mod.augment_parallel_3": "Parallel Processing Augment III"
+  "item.useless_mod.augment_parallel_3": "Parallel Processing Augment III",
+  "jei.useless_mod.tooltip.gt_chance": "Chance: %s%%; batch yield is whole expected successes plus a fractional roll. AE may wait for missing random outputs."
 }

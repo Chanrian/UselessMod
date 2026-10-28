@@ -130,6 +130,7 @@ public final class AlloyFurnaceRecipeFingerprint {
                 normalizeIngredientSemantics, preserveTags));
         append(value, "mode", recipe.mode());
         append(value, "tier", recipe.tier());
+        if (!recipe.outputChances().isEmpty()) append(value, "output_chances", recipe.outputChances());
         return digest(value.toString());
     }
 
@@ -391,7 +392,8 @@ public final class AlloyFurnaceRecipeFingerprint {
                 + "|process_time=" + safeText(recipe.processTime())
                 + "|catalyst_uses=" + safeText(recipe.catalystUses())
                 + "|mode=" + safeText(recipe.mode())
-                + "|tier=" + safeText(recipe.tier()));
+                + "|tier=" + safeText(recipe.tier())
+                + (recipe.outputChances().isEmpty() ? "" : "|output_chances=" + recipe.outputChances()));
     }
 
     private static String safeListSize(List<?> values) {
@@ -429,6 +431,8 @@ public final class AlloyFurnaceRecipeFingerprint {
             if (input.count() != 1L) {
                 counted.addProperty("count", input.count());
             }
+            if (!input.consumed() && recipe.id().getNamespace().equals("useless_mod")
+                    && recipe.id().getPath().startsWith("gtceu/")) counted.addProperty("consumed", false);
             inputs.add(counted);
         }
         encoded.add("ingredients", inputs);

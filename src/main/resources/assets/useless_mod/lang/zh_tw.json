@@ -1297,5 +1297,6 @@
   "commands.useless_mod.patterns.repair.no_machines": "該網路上沒有已通電的萬象爐或 ME 樣板總成，無需修復",
   "commands.useless_mod.patterns.repair.summary": "已掃描 %s 張萬象樣板，發現 %s 張失效；已修復 %s 張，%s 張無法修復（配方已移除或存在歧義）。",
   "commands.useless_mod.patterns.repair.summary.preview": "已掃描 %s 張萬象樣板，發現 %s 張失效；其中 %s 張可修復，%s 張無法修復（配方已移除或存在歧義）。本次為預覽，未寫回任何槽位。",
-  "commands.useless_mod.patterns.repair.detail": "無法修復：%s，綁定配方 %s"
+  "commands.useless_mod.patterns.repair.detail": "無法修復：%s，綁定配方 %s",
+  "jei.useless_mod.tooltip.gt_chance": "機率：%s%%；整批按期望整數部分＋餘數抽樣結算。AE 可能等待未產出的隨機副產物。"
 }

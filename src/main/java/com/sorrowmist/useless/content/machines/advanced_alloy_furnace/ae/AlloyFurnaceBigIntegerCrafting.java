@@ -104,6 +104,22 @@ public final class AlloyFurnaceBigIntegerCrafting {
         return List.copyOf(result);
     }
 
+    /** Rolls the entire admitted batch once per output, never one operation multiplied by count. */
+    public static List<AlloyFurnaceBigIntegerOutput> rolledOutputs(AdvancedAlloyFurnaceRecipe recipe,
+                                                                  BigInteger operations) {
+        List<GenericStack> templates = new ArrayList<>();
+        recipe.outputs().forEach(stack -> templates.add(GenericStack.fromItemStack(stack)));
+        recipe.outputFluids().forEach(stack -> templates.add(GenericStack.fromFluidStack(stack)));
+        templates.addAll(recipe.keyOutputs());
+        List<AlloyFurnaceBigIntegerOutput> result = new ArrayList<>();
+        for (int i = 0; i < templates.size(); i++) {
+            GenericStack template = templates.get(i);
+            BigInteger amount = recipe.outputOperations(i, operations).multiply(BigInteger.valueOf(template.amount()));
+            if (amount.signum() > 0) result.add(new AlloyFurnaceBigIntegerOutput(template.what(), amount));
+        }
+        return List.copyOf(result);
+    }
+
     /** 单次样板推送的单份产出（不折手动倍率）。 */
     public static @NotNull List<GenericStack> unitOutputs(@NotNull AdvancedAlloyFurnaceRecipe recipe) {
         return unitOutputs(recipe, 1L);

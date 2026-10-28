@@ -39,7 +39,8 @@ public record AdvancedAlloyFurnaceRecipe(
         int catalystUses,
         List<Ingredient> molds,
         AlloyFurnaceMode mode,
-        int tier
+        int tier,
+        List<RecipeOutputChance> outputChances
 ) implements Recipe<Container> {
 
     /** A negative tier means that the recipe uses the ID-based configuration rule. */
@@ -67,6 +68,13 @@ public record AdvancedAlloyFurnaceRecipe(
                     normalizedMolds.add(mold);
                 }
             }
+        }
+        outputChances = List.copyOf(outputChances);
+        java.util.Set<Integer> chanceIndexes = new java.util.HashSet<>();
+        for (RecipeOutputChance chance : outputChances) {
+            if (chance.index() >= outputs.size() + outputFluids.size() + keyOutputs.size()
+                    || !chanceIndexes.add(chance.index()))
+                throw new IllegalArgumentException("Invalid or duplicate output chance index");
         }
         molds = List.copyOf(normalizedMolds);
         inputFluids = normalizeFluidIngredients(inputFluids);
@@ -99,6 +107,12 @@ public record AdvancedAlloyFurnaceRecipe(
                 CountedIngredient.INGREDIENT_STREAM_CODEC.apply(ByteBufCodecs.list()).encode(buf, r.molds());
                 ByteBufCodecs.STRING_UTF8.encode(buf, r.mode().getSerializedName());
                 ByteBufCodecs.VAR_INT.encode(buf, r.tier());
+                buf.writeVarInt(r.outputChances().size());
+                for (RecipeOutputChance chance : r.outputChances()) {
+                    buf.writeVarInt(chance.index());
+                    buf.writeVarInt(chance.chance());
+                    buf.writeVarInt(chance.maxChance());
+                }
             },
             buf -> {
                 ResourceLocation id = com.sorrowmist.useless.compat.forge1201.network.PortCodecs.RESOURCE_LOCATION.decode(buf);
@@ -142,10 +156,16 @@ public record AdvancedAlloyFurnaceRecipe(
                 String modeStr = ByteBufCodecs.STRING_UTF8.decode(buf);
                 AlloyFurnaceMode mode = AlloyFurnaceMode.fromString(modeStr);
                 int tier = ByteBufCodecs.VAR_INT.decode(buf);
+                int chanceCount = buf.readVarInt();
+                if (chanceCount < 0 || chanceCount > outputs.size() + outputFluids.size() + keyOutputs.size())
+                    throw new IllegalArgumentException("Invalid output chance count");
+                List<RecipeOutputChance> chances = new ArrayList<>();
+                for (int i = 0; i < chanceCount; i++)
+                    chances.add(new RecipeOutputChance(buf.readVarInt(), buf.readVarInt(), buf.readVarInt()));
 
                 return new AdvancedAlloyFurnaceRecipe(
                         id, inputs, inputFluids, keyInputs, outputs, outputFluids, keyOutputs,
-                        energy, processTime, catalyst, catalystUses, molds, mode, tier
+                        energy, processTime, catalyst, catalystUses, molds, mode, tier, chances
                 );
             }
     );
@@ -184,7 +204,9 @@ public record AdvancedAlloyFurnaceRecipe(
                                           .forGetter(AdvancedAlloyFurnaceRecipe::mode),
                     Codec.intRange(NO_EXPLICIT_TIER, MAX_TIER)
                             .optionalFieldOf("tier", NO_EXPLICIT_TIER)
-                            .forGetter(AdvancedAlloyFurnaceRecipe::tier)
+                            .forGetter(AdvancedAlloyFurnaceRecipe::tier),
+                    RecipeOutputChance.CODEC.listOf().optionalFieldOf("output_chances", List.of())
+                            .forGetter(AdvancedAlloyFurnaceRecipe::outputChances)
             ).apply(instance, AdvancedAlloyFurnaceRecipe::fromCodec));
 
     private static Optional<Ingredient> legacyMold(AdvancedAlloyFurnaceRecipe recipe) {
@@ -210,7 +232,7 @@ public record AdvancedAlloyFurnaceRecipe(
             Optional<Ingredient> legacyMold,
             Optional<List<Ingredient>> multipleMolds,
             AlloyFurnaceMode mode,
-            int tier) {
+            int tier, List<RecipeOutputChance> outputChances) {
         if (legacyMold.isPresent() && multipleMolds.isPresent()) {
             throw new IllegalArgumentException("Advanced alloy-furnace recipe cannot define both mold and molds");
         }
@@ -218,7 +240,30 @@ public record AdvancedAlloyFurnaceRecipe(
                 legacyMold.map(List::of).orElseGet(List::of));
         return new AdvancedAlloyFurnaceRecipe(
                 id, inputs, inputFluids, keyInputs, outputs, outputFluids, keyOutputs,
-                energy, processTime, catalyst, catalystUses, molds, mode, tier);
+                energy, processTime, catalyst, catalystUses, molds, mode, tier, outputChances);
+    }
+
+    /** Keeps existing adapter constructors and deterministic recipes source/binary compatible. */
+    public AdvancedAlloyFurnaceRecipe(ResourceLocation id, List<CountedIngredient> inputs,
+            List<LongSizedFluidIngredient> inputFluids, List<GenericStack> keyInputs,
+            List<ItemStack> outputs, List<FluidStack> outputFluids, List<GenericStack> keyOutputs,
+            long energy, int processTime, Ingredient catalyst, int catalystUses,
+            List<Ingredient> molds, AlloyFurnaceMode mode, int tier) {
+        this(id, inputs, inputFluids, keyInputs, outputs, outputFluids, keyOutputs,
+                energy, processTime, catalyst, catalystUses, molds, mode, tier, List.of());
+    }
+
+    /** Index order is items, fluids, then AE keys. Called once, after batch admission. */
+    public java.math.BigInteger outputOperations(int index, java.math.BigInteger operations) {
+        for (RecipeOutputChance chance : outputChances) {
+            if (chance.index() == index)
+                return chance.successes(operations, java.util.concurrent.ThreadLocalRandom.current());
+        }
+        return operations;
+    }
+
+    public long outputOperations(int index, long operations) {
+        return outputOperations(index, java.math.BigInteger.valueOf(operations)).longValueExact();
     }
 
     public AdvancedAlloyFurnaceRecipe(ResourceLocation id,

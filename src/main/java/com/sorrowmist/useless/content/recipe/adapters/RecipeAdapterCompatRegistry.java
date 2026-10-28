@@ -96,6 +96,8 @@ public final class RecipeAdapterCompatRegistry {
 
     private static final List<CompatEntry> ENTRIES = List.of(
             new CompatEntry(null, RecipeAdapterCompatRegistry::registerMinecraft),
+            new CompatEntry("gtceu", () -> AlloyFurnaceRecipeManager.getInstance().registerAdapter(
+                    new com.sorrowmist.useless.content.recipe.adapters.gtceu.GtceuRecipeAdapter(), "gtceu")),
             new CompatEntry(RecipeSourceIds.THERMAL, () -> invokeOptionalLoader(
                     "com.sorrowmist.useless.compat.thermal.ThermalRecipeCompatLoader")),
             new CompatEntry(RecipeSourceIds.BLOOD_MAGIC, () -> invokeOptionalLoader(

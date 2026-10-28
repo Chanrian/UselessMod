@@ -20,10 +20,12 @@ versionRange="[20.4.2,20.5)"
 ordering="AFTER"
 side="BOTH"
 
+# Useless Mod has no direct LDLib bytecode references. Allow the GT 1.4.4
+# dependency floor and ATM9's 1.0.45; GTCEu/NeoEcoAE enforce their own minima.
 [[dependencies.useless_mod]]
 modId="ldlib"
 mandatory=false
-versionRange="[1.0.52.a,1.0.53)"
+versionRange="[1.0.28.a,1.0.53)"
 ordering="AFTER"
 side="BOTH"
 
