@@ -29,7 +29,7 @@
 - 超级并行沿用原流程；不能再乘 GT 的 parallels/batchParallels，也不能让概率产物只抽一次再整体放大。
 - 本阶段不补 ATM9 的其他模组联动。上游 [PR #54](https://github.com/SorrowMist/UselessMod/pull/54) 仅作参考，没有整批合并。
 - 后续继续在 macOS 本地开发。不自动启动游戏或接管鼠标键盘，不修改真实整合包或存档。
-- 当前上传范围是 fork 的工作分支、项目说明和交接文件；合并、向上游提交 PR、发布标签/Release、部署到整合包需另有明确授权。
+- 用户已后续授权发布当前 JAR；GitHub 预发布 `20.2.4.7-gtceu.1` 已发布。合并、向上游提交 PR、新版本发布和部署到整合包仍需另有明确授权。
 
 ## 版本证据与兼容策略
 
@@ -88,7 +88,7 @@ GTL 的运行版本不是从 GTLCore 编译依赖推定。该发布 ZIP 内附 `
 74e3a1be324a223a6187b35f74a2d72af63291e93aa6de17bb6aa86d4dd7811b
 ```
 
-这是当时构建的产物校验值，不要求其他环境重新构建得到完全相同的 ZIP 字节。JAR 不提交到源码树，也未创建 Release。
+这是当时构建的产物校验值，不要求其他环境重新构建得到完全相同的 ZIP 字节。JAR 未提交到源码树，已作为 [GitHub 预发布附件](https://github.com/Chanrian/UselessMod/releases/tag/20.2.4.7-gtceu.1) 上传，另附 `.sha256` 文件；远端附件摘要与本地一致。发布标签指向 `4485e8ae25392f0e15d7223a50abe949db79dcde`，之后的文档更新不改变 JAR。
 
 ## 重建与检查
 
@@ -112,6 +112,8 @@ python3 scripts/check_gtceu_api.py /path/to/jdk17/bin/javap /path/to/gtceu-1.4.4
 本机曾遇到 Gradle 下载超时，以及 Documents 构建目录出现同名 ` 2.class` 副本造成类加载失败。最终构建改用 `~/Library/Caches/UselessMod/build`；仓库的 `build` 是本地符号链接，项目缓存也移至该缓存目录。这些本地设置不纳入 Git，新克隆默认仍输出到普通 build 目录。遇到重复文件时检查构建目录和同步干扰，不要修改业务代码规避错误，也不要擅改系统代理/同步设置。
 
 仓库原有 `Build` workflow 在 push 时构建；`Publish` 由 `20.*` 标签、发布 Release 或手动触发。不要为普通分支上传推送发布标签。
+
+当前预发布通过独立分支的一次性工作流上传原有本地成品，没有重新编译，也未调用 CurseForge/Modrinth 发布流程。该工作流已移除；`codex/publish-gtceu.1` 仅保留发布审计历史，不作为开发分支。后续发布应先检查继承的 `Publish` 工作流，避免将仅面向 GitHub 的发布扩散到其他平台。
 
 ## 尚未覆盖与下一步
 
