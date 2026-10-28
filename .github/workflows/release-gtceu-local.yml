@@ -1,0 +1,96 @@
+name: Publish verified local GTCEu jar
+on:
+  push:
+    branches: ['codex/publish-gtceu.1']
+    paths: ['.github/workflows/release-gtceu-local.yml']
+permissions:
+  contents: write
+concurrency:
+  group: publish-gtceu-20.2.4.7-1
+  cancel-in-progress: false
+jobs:
+  publish:
+    if: github.repository == 'Chanrian/UselessMod'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    env:
+      GH_TOKEN: ${{ github.token }}
+      GH_REPO: ${{ github.repository }}
+      RELEASE_TAG: '20.2.4.7-gtceu.1'
+      SOURCE_SHA: '4485e8ae25392f0e15d7223a50abe949db79dcde'
+      ARTIFACT_BLOB: '1a1130b549008f3e64894c1fbc8baddf68a2e2e5'
+      ARTIFACT_NAME: 'useless_mod-20.2.4.7-gtceu.1.jar'
+      ARTIFACT_SHA: '74e3a1be324a223a6187b35f74a2d72af63291e93aa6de17bb6aa86d4dd7811b'
+    steps:
+      - name: Download and verify the existing local build
+        shell: bash
+        run: |
+          set -euo pipefail
+          gh api "repos/$GH_REPO/git/blobs/$ARTIFACT_BLOB" --jq '.content' | tr -d '\n' | base64 --decode > "$ARTIFACT_NAME"
+          printf '%s  %s\n' "$ARTIFACT_SHA" "$ARTIFACT_NAME" > "$ARTIFACT_NAME.sha256"
+          sha256sum --check "$ARTIFACT_NAME.sha256"
+          test "$(wc -c < "$ARTIFACT_NAME")" -eq 4230720
+      - name: Prepare release notes
+        shell: bash
+        run: |
+          cat > release-notes.md <<'RELEASE_NOTES'
+          ## 无用之物 GTCEu 配方适配首版（预发布）
+          
+          Minecraft **1.20.1 / Forge**，模组版本 **20.2.4.7-gtceu.1**。这是无用之物本体修改版，安装时替换旧本体 JAR；不能与原本体重复安装。客户端、服务端必须使用相同版本，并满足本体所需的 AE2 等依赖。
+          
+          ### 功能
+          
+          - 万象合金炉读取加载后的 GTCEu 机器配方，复用原配方目录、样板和超级并行，支持 KubeJS 修改后的静态配方及符合接口的自定义配方类型。
+          - 保留物品/流体数量、标签、NBT、不消耗的电路、模具和催化剂物品。
+          - 仅在炉内绕过已识别的机器、等级、研究、洁净室、维度等加工门槛，以及 GTL 的重力条件；不修改原 GT 机器行为。
+          - 修正 GT 路径的输出槽重复分配、AE 流体重复计数和 long 流体量截断风险，概率产物按整个已接收批次结算。
+          
+          ### 默认规则
+          
+          `config/useless_mod-common.toml`：
+          
+          ```toml
+          [advanced_alloy_furnace.recipe_conversion.gtceu]
+          enabled = true
+          speedup = 100
+          fe_per_eu = 0
+          ```
+          
+          时间为 `max(1, ceil(原时间 / 100))`。换算比例 0 表示读取 GT 配置，通常是 **4 FE/EU**；正整数可覆盖。保留基础 EU/t，缩短时间后总能量减少，再应用原催化剂和线圈规则。
+          
+          OR 概率产物使用“整批期望整数部分＋余数抽样”，不是一次抽签乘全部并行，也不是逐次独立抽样。AE 可能等待未掉落的副产物。
+          
+          ### 验证与边界
+          
+          - 本地完整构建通过：46 项主测试（含 13 项新增 GT 测试）、167 项桥接测试、10 项字节码检查。
+          - 已核对 **GTCEu 7.2.0（ATM9 1.1.1）**和 **GTCEu 1.4.4（GTL 1.4.5.4 发布清单对应 JAR）**的实际接口，一个 JAR 共用桥接。
+          - **游戏启动、ATM9/GTL 整包运行、无 GT 启动及真实 `/reload` 验收未执行。编译和接口检查通过不等于整包兼容已验证。请先在测试副本使用。**
+          - 非消耗流体、概率消耗输入、逐 tick 物料、发电、CWU、自定义能力、特殊概率逻辑和未知动态条件会整条跳过并记录原因。
+          
+          [项目说明](https://github.com/Chanrian/UselessMod/blob/4485e8ae25392f0e15d7223a50abe949db79dcde/README.md) · [安装与验收指南](https://github.com/Chanrian/UselessMod/blob/4485e8ae25392f0e15d7223a50abe949db79dcde/wiki/GTCEU_COMPAT_CN.md) · [开发交接](https://github.com/Chanrian/UselessMod/blob/4485e8ae25392f0e15d7223a50abe949db79dcde/HANDOFF.md)
+          
+          源码提交：`4485e8ae25392f0e15d7223a50abe949db79dcde`。
+          
+          JAR SHA-256：
+          
+          ```text
+          74e3a1be324a223a6187b35f74a2d72af63291e93aa6de17bb6aa86d4dd7811b
+          ```
+          RELEASE_NOTES
+      - name: Publish the GitHub prerelease
+        shell: bash
+        run: |
+          set -euo pipefail
+          if gh release view "$RELEASE_TAG" >/dev/null 2>&1; then
+            actual_target=$(gh api "repos/$GH_REPO/git/ref/tags/$RELEASE_TAG" --jq '.object.sha')
+            test "$actual_target" = "$SOURCE_SHA"
+            mkdir -p existing
+            gh release download "$RELEASE_TAG" --pattern "$ARTIFACT_NAME" --dir existing
+            (cd existing && printf '%s  %s\n' "$ARTIFACT_SHA" "$ARTIFACT_NAME" | sha256sum --check)
+          else
+            gh release create "$RELEASE_TAG" "$ARTIFACT_NAME" "$ARTIFACT_NAME.sha256" \
+              --target "$SOURCE_SHA" \
+              --title '无用之物 20.2.4.7-gtceu.1 · Forge 1.20.1 / GTCEu 适配' \
+              --notes-file release-notes.md --prerelease --latest=false
+          fi
+          gh release view "$RELEASE_TAG" --json url,isPrerelease,assets
