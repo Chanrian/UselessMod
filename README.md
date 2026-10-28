@@ -1,14 +1,32 @@
-# Useless Mod
+# 无用之物 Some Useless Things — GTCEu 配方适配
 
-A Minecraft mod featuring various utilities and enhancements.
+本仓库是 [SorrowMist/UselessMod](https://github.com/SorrowMist/UselessMod) 的个人 fork。本开发分支为 **Minecraft 1.20.1 / Forge** 的万象合金炉增加通用 GTCEu 机器配方适配，复用本体的配方目录、样板、输入分配和超级并行。
+
+- **工作分支**：`codex/gtceu-omniversal-1.20.1`；基础分支：`develop/1.20.1`。
+- **当前版本**：`20.2.4.7-gtceu.1`；基线提交：`e25d17a8f8722e7e73619fd6b9c581f8b0bbdfa2`。
+- **版本目标**：GTCEu 7.2.0（ATM9 1.1.1）与 1.4.4（GTL 1.4.5.4 发布清单对应 JAR），两条接口共用一个构建产物。
+- **玩法**：仅在万象炉执行路径绕过已识别的机器、等级、研究和环境门槛，保留实际物品/流体需求、数量、标签、NBT 与非消耗物品。
+- **加工规则**：默认可配置 100 倍提速、最短 1 tick；默认读取 GT 的 FE/EU 换算。保留基础功率，缩短加工后允许总能量减少。概率产物按整批结算。
+- **验证状态**：本地构建与自动测试通过，已检查两版实际 GT JAR 的接口；**游戏启动、ATM9/GTL 整包运行及真实配方重载尚未验收**。
+
+这是无用之物**本体修改版**，安装时替换原本体 JAR，不是额外附属模组。客户端和服务端需使用同一版本。本阶段不增加其他 ATM9 模组联动，也未整批合并上游 PR #54。
+
+## 文档入口
+
+- [安装、配置、支持范围与游戏内验收](wiki/GTCEU_COMPAT_CN.md)
+- [开发交接 HANDOFF](HANDOFF.md)
+- [可复制到测试实例的 KubeJS 验收脚本](tests/manual/gtceu_acceptance.js)
+- [两版 GTCEu JAR 的接口检查脚本](scripts/check_gtceu_api.py)
+
+以下保留本体的 Forge 构建、功能与许可证说明。
 
 ## Forge 1.20.1
 
-Version `20.2.4.7` targets Minecraft 1.20.1, Forge 47.3.10+, Java 17,
+Version `20.2.4.7-gtceu.1` is based on `20.2.4.7` and targets Minecraft 1.20.1, Forge 47.3.10+, Java 17,
 AE2 15.4.8+, Mekanism 10.4.15+ (compiled against 10.4.16.80),
 Mekanism Extras 1.5.0+ and the Create 2 Mekanism: Sky Edition 2 integration profile.
-Build with `./gradlew build` (Windows: `gradlew.bat build`); Python 3 is used by
-nine release-bytecode/outline regression checks. Dependencies resolve from public Maven repositories.
+Build with `bash ./gradlew build` (Windows: `gradlew.bat build`); Python 3 is used by
+the release-bytecode/outline regression checks. Dependencies resolve from public Maven repositories.
 The `portBridgeTest` suite also runs as part of `check` and is not shipped in the mod jar.
 
 Forge, Minecraft and AE2 are required. Every compiled mod integration declares a
